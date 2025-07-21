@@ -10,18 +10,19 @@ namespace financesApi.services
     public static class GenericDataService
     {
         // Generic read operation
-        public static async Task<DataTable> ExecuteQueryAsync(string queryPath, Dictionary<string, object>? parameters = null, string? filterSql = null)
+        public static async Task<DataTable> ExecuteQueryAsync(string queryPath, TransactionQueryRequest? queryParamters)
         {
             string query = await MinioConnection.GetQueryAsync(queryPath)
                 ?? throw new ArgumentNullException(nameof(query), $"Query '{queryPath}' returned null");
 
-            // Append filter if provided
-            if (!string.IsNullOrEmpty(filterSql))
+            if (queryParamters != null)
             {
-                query += " " + filterSql;
+                string filter = FilterBuilder.BuildFilter(queryParamters);
+
+                query += filter;
             }
 
-            return await PostgreSqlQuerier.ExecuteQueryAsync(query, parameters);
+            return await PostgreSqlQuerier.ExecuteQueryAsync(query);
         }
 
         // Generic write operation

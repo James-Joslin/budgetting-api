@@ -5,9 +5,9 @@ using System.Globalization;
 
 using financesApi.models;
 
-namespace financesApi.FilterBuilder
+namespace financesApi.utilities
 {
-    public static class ClientFilterBuilder
+    public static class FilterBuilder
     {
         public static string BuildFilter(TransactionQueryRequest queryParameters)
         {

@@ -16,7 +16,7 @@ namespace financesApi.utilities
             {
                 var connectionString = new NpgsqlConnectionStringBuilder
                 {
-                    Host = Environment.GetEnvironmentVariable("POSTGRES_HOST"),
+                    Host = Environment.GetEnvironmentVariable("POSTGRES_SERVER"),
                     Port = int.Parse(Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "5432"),
                     Database = Environment.GetEnvironmentVariable("POSTGRES_DB"),
                     Username = Environment.GetEnvironmentVariable("POSTGRES_USER"),
@@ -35,7 +35,7 @@ namespace financesApi.utilities
         }
 
         // Generic read method
-        public static async Task<DataTable> ExecuteQueryAsync(string query, Dictionary<string, object>? parameters = null)
+        public static async Task<DataTable> ExecuteQueryAsync(string query)
         {
             try
             {
@@ -43,15 +43,6 @@ namespace financesApi.utilities
                 await connection.OpenAsync();
 
                 using var command = new NpgsqlCommand(query, connection);
-                
-                // Add parameters if provided
-                if (parameters != null)
-                {
-                    foreach (var param in parameters)
-                    {
-                        command.Parameters.AddWithValue(param.Key, param.Value ?? DBNull.Value);
-                    }
-                }
 
                 using var reader = await command.ExecuteReaderAsync();
                 var dataTable = new DataTable();

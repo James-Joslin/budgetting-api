@@ -1,12 +1,25 @@
+using System.Text.Json.Serialization;
+
 namespace financesApi.models
 {
     public class NewAccountRequest
     {
+        // [JsonPropertyName("account_name")]
         public required string AccountName { get; set; }
-        public required string AccountHolder { get; set; }
+        
+        // [JsonPropertyName("first_name")]
+        public required string FirstName { get; set; }
+        
+        // [JsonPropertyName("last_name")]
+        public required string LastName { get; set; }
+        
+        // [JsonPropertyName("starting_balance")]
         public decimal StartingBalance { get; set; }
+        
+        // [JsonPropertyName("starting_date")]
         public required string StartingDate { get; set; }
     }
+
 
     public class OfxTransactionDto
     {
