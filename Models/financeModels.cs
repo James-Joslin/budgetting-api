@@ -31,7 +31,7 @@ namespace financesApi.models
 
     public class OfxUploadRequest
     {
-        public string OfxContent { get; set; } = "";
+        public IFormFile OfxContent { get; set; }
         public int AccountId { get; set; }
         public bool SkipDuplicates { get; set; } = true;
         public string? SourceFileName { get; set; }

@@ -10,14 +10,14 @@ namespace financesApi.services
     public static class GenericDataService
     {
         // Generic read operation
-        public static async Task<DataTable> ExecuteQueryAsync(string queryPath, TransactionQueryRequest? queryParamters)
+        public static async Task<DataTable> ExecuteQueryAsync(string queryPath, TransactionQueryRequest? queryParameters = null)
         {
             string query = await MinioConnection.GetQueryAsync(queryPath)
                 ?? throw new ArgumentNullException(nameof(query), $"Query '{queryPath}' returned null");
 
-            if (queryParamters != null)
+            if (queryParameters != null)
             {
-                string filter = FilterBuilder.BuildFilter(queryParamters);
+                string filter = FilterBuilder.BuildFilter(queryParameters);
 
                 query += filter;
             }

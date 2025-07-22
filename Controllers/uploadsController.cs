@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using financesApi.models;
 using financesApi.utilities;
+using financesApi.services;
 using Npgsql;
+using System.Data;
 
 namespace financesApi.Controllers
 {
@@ -106,12 +108,23 @@ namespace financesApi.Controllers
         [HttpGet("getAccounts")]
         public async Task<IActionResult> getAccounts()
         {
-            return Ok();
+            DataTable accountsTable = await GenericDataService.ExecuteQueryAsync(queryPath: "get_accounts");
+            return Ok(DataEditor.ConvertData(accountsTable));
         }
 
         [HttpPost("uploadTransactions")]
-        public async Task<IActionResult> uploadTransactions()
+        public async Task<IActionResult> uploadTransactions([FromForm] OfxUploadRequest ofxUploadRequest)
         {
+            Console.WriteLine(ofxUploadRequest.AccountId);
+            
+            // Read the file content
+            using var reader = new StreamReader(ofxUploadRequest.OfxContent.OpenReadStream());
+            string fileContent = await reader.ReadToEndAsync();
+            
+            Console.WriteLine(fileContent);
+
+            // Process fileContent as needed
+
             return Ok();
         }
     }
