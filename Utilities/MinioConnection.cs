@@ -16,7 +16,7 @@ namespace financesApi.utilities
             if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MINIO_ENDPOINT")) ||
                 string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MINIO_ACCESS_KEY")) ||
                 string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MINIO_SECRET_KEY")) ||
-                string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MINIO_BUCKET")))
+                string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MINIO_BUCKET_NAME")))
             {
                 throw new ArgumentNullException("MinIO environment variables must not be null or empty.");
             }
@@ -24,15 +24,16 @@ namespace financesApi.utilities
             try
             {
                 using var minioClient = new MinioClient()
-                    .WithEndpoint(Environment.GetEnvironmentVariable("MINIO_ENDPOINT")!)
+                    .WithEndpoint(Environment.GetEnvironmentVariable("MINIO_ENDPOINT"))
                     .WithCredentials(
                         Environment.GetEnvironmentVariable("MINIO_ACCESS_KEY")!,
-                        Environment.GetEnvironmentVariable("MINIO_SECRET_KEY")!)
+                        Environment.GetEnvironmentVariable("MINIO_SECRET_KEY")!
+                        )
                     .WithSSL(bool.Parse(Environment.GetEnvironmentVariable("MINIO_USE_SSL") ?? "false"))
                     .Build();
 
-                string bucketName = Environment.GetEnvironmentVariable("MINIO_BUCKET")!;
-                string objectName = $"sql-queries/{queryPath}.sql";
+                string bucketName = Environment.GetEnvironmentVariable("MINIO_BUCKET_NAME")!;
+                string objectName = $"{queryPath}.sql";
 
                 string queryContent = "";
                 await minioClient.GetObjectAsync(
