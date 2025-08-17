@@ -4,6 +4,7 @@ using financesApi.utilities;
 using financesApi.services;
 using Npgsql;
 using System.Data;
+using System.Globalization;
 
 namespace financesApi.Controllers
 {
@@ -17,7 +18,6 @@ namespace financesApi.Controllers
             try
             {
                 int accountId = 0;
-
                 await PostgreSqlQuerier.ExecuteTransactionAsync(async (connection, transaction) =>
                 {
                     // 1. Check if this person + account combination already exists
