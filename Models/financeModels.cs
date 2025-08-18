@@ -32,10 +32,12 @@ namespace financesApi.models
 
     public class OfxTransactionDto
     {
-        public DateTime Date { get; set; }
-        public double Amount { get; set; }
+        public required DateTime Date { get; set; }
+        public required decimal Amount { get; set; }
         public required string Payee { get; set; }
         public string? Memo { get; set; }
+        public required string FitId { get; set; }
+        public string? transType { get; set; }
     }
 
     public class OfxUploadRequest
@@ -48,7 +50,9 @@ namespace financesApi.models
 
     public class TransactionQueryRequest
     {
-        public string? AccountName { get; set; }
+        public string? accountName { get; set; }
+
+        public int? accountId { get; set; }
     }
 }
 

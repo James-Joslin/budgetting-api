@@ -10,9 +10,6 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.18" />
     <PackageReference Include="Minio" Version="6.0.5" />
     <PackageReference Include="Npgsql" Version="9.0.3" />
-    <!-- <PackageReference Include="OfxNet" Version="1.7.0" />
-    <PackageReference Include="OFXNet.Parser" Version="1.0.1" /> -->
-    <PackageReference Include="OFXParser" Version="1.1.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 

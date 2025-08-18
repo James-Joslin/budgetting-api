@@ -14,5 +14,16 @@ namespace financesApi.controllers
     [Route("[controller]")]
     public class reportsController : ControllerBase
     {
+        [HttpPost("getAccountTable")]
+        public async Task<IActionResult> getAccountTable(TransactionQueryRequest requestParameters)
+        {
+            var parameters = new Dictionary<string, object>
+            {
+                { "@accountId", requestParameters.accountId },
+            };
+            // Console.WriteLine(parameters);
+            DataTable accountTable = await GenericDataService.ExecuteParameterisedQueryAsync(queryPath: "get_account_table", parameters);
+            return Ok(DataEditor.ConvertData(accountTable));
+        }
     }
 }

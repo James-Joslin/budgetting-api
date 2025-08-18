@@ -72,8 +72,8 @@ namespace financesApi.Controllers
 
                     // 4. Insert initial transaction (note: using 'memo' instead of 'description' based on your schema)
                     var transactionQuery = @"
-                        INSERT INTO transactions (account_id, amount, date, memo) 
-                        VALUES (@account_id, @amount, @date, @memo);";
+                        INSERT INTO transactions (account_id, amount, transaction_date, memo, fitid, transaction_type) 
+                        VALUES (@account_id, @amount, @transaction_date, @memo, @fitid, @transaction_type);";
                     
                     if (!DateTime.TryParse(accountParameters.StartingDate, out DateTime startDate))
                     {
@@ -83,8 +83,10 @@ namespace financesApi.Controllers
                     using var transCommand = new NpgsqlCommand(transactionQuery, connection, transaction);
                     transCommand.Parameters.AddWithValue("@account_id", accountId);
                     transCommand.Parameters.AddWithValue("@amount", accountParameters.StartingBalance);
-                    transCommand.Parameters.AddWithValue("@date", startDate);
+                    transCommand.Parameters.AddWithValue("@transaction_date", startDate);
                     transCommand.Parameters.AddWithValue("@memo", "Initial Deposit");
+                    transCommand.Parameters.AddWithValue("@fitid", "Initial Deposit");
+                    transCommand.Parameters.AddWithValue("@transaction_type", "Initial Deposit");
                     await transCommand.ExecuteNonQueryAsync();
                 });
 
@@ -115,16 +117,8 @@ namespace financesApi.Controllers
         [HttpPost("uploadTransactions")]
         public async Task<IActionResult> uploadTransactions([FromForm] OfxUploadRequest ofxUploadRequest)
         {
-            Console.WriteLine(ofxUploadRequest.AccountId);
-            
-            // Read the file content
-            using var reader = new StreamReader(ofxUploadRequest.OfxContent.OpenReadStream());
-            string fileContent = await reader.ReadToEndAsync();
-            
-            Console.WriteLine(fileContent);
-
-            // Process fileContent as needed
-
+            List<OfxTransactionDto> parsedResults = OfxParserService.Parse(ofxUploadRequest.OfxContent.OpenReadStream());
+            await GenericDataService.FilterAndInsertTransactionsAsync(parsedResults, ofxUploadRequest.AccountId);
             return Ok();
         }
     }

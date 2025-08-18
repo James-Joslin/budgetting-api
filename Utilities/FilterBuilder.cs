@@ -14,13 +14,12 @@ namespace financesApi.utilities
             StringBuilder filter = new StringBuilder();
             bool hasCondition = false;
 
-            if (queryParameters.AccountName != null)
+            if (queryParameters.accountName != null)
             {
-                filter.Append("WHERE client_theseus_id = ").Append(queryParameters.AccountName).Append(' ');
+                filter.Append("WHERE client_theseus_id = ").Append(queryParameters.accountName).Append(' ');
                 hasCondition = true;
             }
 
-            
             return filter.ToString();
         }
     }

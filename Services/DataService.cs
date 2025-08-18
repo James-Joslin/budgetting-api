@@ -25,6 +25,14 @@ namespace financesApi.services
             return await PostgreSqlQuerier.ExecuteQueryAsync(query);
         }
 
+        public static async Task<DataTable> ExecuteParameterisedQueryAsync(string queryPath, Dictionary<string, object> parameters)
+        {
+            string query = await MinioConnection.GetQueryAsync(queryPath)
+                ?? throw new ArgumentNullException(nameof(query), $"Query '{queryPath}' returned null");
+            // Console.WriteLine(query);
+            return await PostgreSqlQuerier.ExecuteParameterisedQueryAsync(query, parameters);
+        }
+
         // Generic write operation
         public static async Task<int> ExecuteCommandAsync(string queryPath, Dictionary<string, object> parameters)
         {
@@ -62,90 +70,71 @@ namespace financesApi.services
                 }
             });
         }
-        // // NEW: Bulk insert method specifically for transactions
-        // public static async Task<int> BulkInsertTransactionsAsync(List<OfxTransactionDto> transactions, int accountId, string? sourceFileName = null)
-        // {
-        //     if (!transactions.Any()) return 0;
 
-        //     if (accountId <= 0)
-        //         throw new ArgumentException("Valid accountId is required", nameof(accountId));
+        public static async Task<List<OfxTransactionDto>> FilterAndInsertTransactionsAsync(
+            List<OfxTransactionDto> incomingTransactions,
+            int accountId,
+            int daysTolerance = 1)
+        {
+            if (!incomingTransactions.Any()) return new List<OfxTransactionDto>();
 
-        //     using var connection = PostgreSqlQuerier.BuildConnection();
-        //     await connection.OpenAsync();
+            // Step 1: Get date range
+            var minDate = incomingTransactions.Min(t => t.Date).AddDays(-daysTolerance);
+            var maxDate = incomingTransactions.Max(t => t.Date).AddDays(daysTolerance);
 
-        //     using var transaction = await connection.BeginTransactionAsync();
-        //     try
-        //     {
-        //         // Use PostgreSQL COPY command for maximum performance
-        //         var copyCommand = @"
-        //             COPY transactions (account_id, date, amount, payee, memo, category, source_file, created_at) 
-        //             FROM STDIN (FORMAT BINARY)";
+            // Step 2: Query existing transactions in that range
+            var existingQuery = @"
+                SELECT transaction_date, amount, payee, memo, fitid, transaction_type
+                FROM transactions 
+                WHERE account_id = @accountId 
+                AND transaction_date BETWEEN @minDate AND @maxDate";
 
-        //         using var writer = await connection.BeginBinaryImportAsync(copyCommand, transaction);
-                
-        //         foreach (var tx in transactions)
-        //         {
-        //             await writer.StartRowAsync();
-        //             await writer.WriteAsync(accountId, NpgsqlDbType.Integer);
-        //             await writer.WriteAsync(tx.Date, NpgsqlDbType.Date);
-        //             await writer.WriteAsync(tx.Amount, NpgsqlDbType.Numeric);
-        //             await writer.WriteAsync(tx.Payee ?? "", NpgsqlDbType.Text);
-        //             await writer.WriteAsync(tx.Memo ?? "", NpgsqlDbType.Text);
-        //             await writer.WriteAsync((object?)null, NpgsqlDbType.Text); // category - null for now
-        //             await writer.WriteAsync(sourceFileName ?? "", NpgsqlDbType.Text);
-        //             await writer.WriteAsync(DateTime.Now, NpgsqlDbType.Timestamp); // timestamp without time zone
-        //         }
+            var parameters = new Dictionary<string, object>
+            {
+                { "@accountId", accountId },
+                { "@minDate", minDate },
+                { "@maxDate", maxDate }
+            };
 
-        //         await writer.CompleteAsync();
-        //         await transaction.CommitAsync();
-                
-        //         return transactions.Count;
-        //     }
-        //     catch
-        //     {
-        //         await transaction.RollbackAsync();
-        //         throw;
-        //     }
-        // }
+            var existingTransactions = await PostgreSqlQuerier.ExecuteParameterisedQueryAsync(existingQuery, parameters);
 
-        //         // NEW: Check for duplicate transactions before inserting
-        // public static async Task<List<OfxTransactionDto>> FilterDuplicateTransactionsAsync(
-        //     List<OfxTransactionDto> transactions, 
-        //     int accountId, 
-        //     int daysTolerance = 1)
-        // {
-        //     if (!transactions.Any()) return transactions;
+            // Step 3: Build hash set of existing transaction keys
+            var existingKeys = new HashSet<string>();
+            foreach (DataRow row in existingTransactions.Rows)
+            {
+                var key = $"{row["transaction_date"]:yyyy-MM-dd}|{row["amount"]}|{row["payee"]}|{row["memo"]}|{row["fitid"]}|{row["transaction_type"]}";
+                existingKeys.Add(key);
+            }
 
-        //     var minDate = transactions.Min(t => t.Date).AddDays(-daysTolerance);
-        //     var maxDate = transactions.Max(t => t.Date).AddDays(daysTolerance);
+            // Step 4: Filter incoming transactions
+            var newTransactions = incomingTransactions.Where(tx =>
+            {
+                var key = $"{tx.Date:yyyy-MM-dd}|{tx.Amount}|{tx.Payee}|{tx.Memo}|{tx.FitId}|{tx.transType}";
+                return !existingKeys.Contains(key);
+            }).ToList();
 
-        //     var existingQuery = @"
-        //         SELECT date, amount, payee, memo
-        //         FROM transactions 
-        //         WHERE account_id = @accountId 
-        //           AND date BETWEEN @minDate AND @maxDate";
+            // Step 5: Insert new transactions
+            foreach (var tx in newTransactions)
+            {
+                var insertQuery = @"
+                    INSERT INTO transactions (account_id, transaction_date, amount, payee, memo, fitid, transaction_type)
+                    VALUES (@accountId, @transaction_date, @amount, @payee, @memo, @fitid, @transaction_type)";
 
-        //     var parameters = new Dictionary<string, object>
-        //     {
-        //         { "@accountId", accountId },
-        //         { "@minDate", minDate },
-        //         { "@maxDate", maxDate }
-        //     };
+                var insertParams = new Dictionary<string, object>
+                {
+                    { "@accountId", accountId },
+                    { "@transaction_date", tx.Date },
+                    { "@amount", tx.Amount },
+                    { "@payee", tx.Payee },
+                    { "@memo", tx.Memo },
+                    { "@fitid", tx.FitId },
+                    { "@transaction_type", tx.transType }
+                };
 
-        //     var existingTransactions = await PostgreSqlQuerier.ExecuteQueryAsync(existingQuery, parameters);
-            
-        //     var existingSet = new HashSet<string>();
-        //     foreach (DataRow row in existingTransactions.Rows)
-        //     {
-        //         var key = $"{row["date"]}|{row["amount"]}|{row["payee"]}|{row["memo"]}";
-        //         existingSet.Add(key);
-        //     }
+                await PostgreSqlQuerier.ExecuteNonQueryAsync(insertQuery, insertParams);
+            }
 
-        //     return transactions.Where(tx =>
-        //     {
-        //         var key = $"{tx.Date:yyyy-MM-dd}|{tx.Amount}|{tx.Payee}|{tx.Memo}";
-        //         return !existingSet.Contains(key);
-        //     }).ToList();
-        // }
+            return newTransactions;
+        }
     }
 }

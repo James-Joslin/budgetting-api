@@ -55,6 +55,32 @@ namespace financesApi.utilities
                 throw;
             }
         }
+        
+        public static async Task<DataTable> ExecuteParameterisedQueryAsync(string query, Dictionary<string, object> parameters = null)
+        {
+            try
+            {
+                using var connection = BuildConnection();
+                await connection.OpenAsync();
+
+                using var command = new NpgsqlCommand(query, connection);
+
+                foreach (var param in parameters)
+                {
+                    command.Parameters.AddWithValue(param.Key, param.Value ?? DBNull.Value);
+                }
+
+                using var reader = await command.ExecuteReaderAsync();
+                var dataTable = new DataTable();
+                dataTable.Load(reader);
+                return dataTable;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"PostgreSQL Write Error: {ex}");
+                throw;
+            }
+        }
 
         // Generic write method (INSERT, UPDATE, DELETE)
         public static async Task<int> ExecuteNonQueryAsync(string query, Dictionary<string, object>? parameters = null)
@@ -65,7 +91,7 @@ namespace financesApi.utilities
                 await connection.OpenAsync();
 
                 using var command = new NpgsqlCommand(query, connection);
-                
+
                 if (parameters != null)
                 {
                     foreach (var param in parameters)
